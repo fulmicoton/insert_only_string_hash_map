@@ -1,4 +1,6 @@
 
+## inohashmap
+
 Stores values for strings in a Hashmap in a fast and compact way.
 
 Good to count strings and assign ids to them or similar. Address space of string data is limited to u32::MAX (4GB).
@@ -7,10 +9,6 @@ string data is size in bytes of all uniquely inserted strings + string length me
 
 ### Memory Consumption
 Memory Consumption is lower than with a regular hashmap, 30% lower in the [compare_allocations](compare_allocations/README.md) test.
-
-
-tests::bench_tant_termmap_full_large_struct ... bench:   5,769,806 ns/iter (+/- 371,247)
-```
 
 
 ### Bench
