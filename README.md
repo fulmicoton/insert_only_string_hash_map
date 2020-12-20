@@ -1,11 +1,22 @@
 
-## inohashmap
+## Inohashmap
 
 Stores values for strings in a Hashmap in a fast and compact way.
 
 Good to count strings and assign ids to them or similar. Address space of string data is limited to u32::MAX (4GB).
 string data is size in bytes of all uniquely inserted strings + string length metadata per string.
 
+### Example
+
+```
+use inohashmap::StringHashMap;
+let mut hashmap = StringHashMap::<u32>::new();
+let val = hashmap.get_or_create("blub1", 0);
+assert_eq!(*val, 0);
+*val += 1;
+let val = hashmap.get_or_create("blub2", 2);
+assert_eq!(*val, 2);
+```
 
 ### Memory Consumption
 Memory Consumption is lower than with a regular hashmap, 30% lower in the [compare_allocations](compare_allocations/README.md) test.
