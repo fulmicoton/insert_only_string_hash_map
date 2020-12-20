@@ -1,14 +1,23 @@
 [package]
-name = "insert_only_string_hash_map"
+name = "inohashmap"
 version = "0.1.0"
 authors = ["Pascal Seitz <pascal.seitz@gmail.com>"]
 edition = "2018"
+description = "insert only string hashmap"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dev-dependencies]
 fnv = "1.0.7"
+tantivity_term_map = { path = "./tantivity_term_map" }
 
 [profile.bench]
 codegen-units = 1
 debug = true
+
+[profile.release]
+codegen-units = 1
+debug = true
+
+[dependencies]
+vint32 = "0.1.0"

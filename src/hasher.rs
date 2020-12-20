@@ -1,6 +1,4 @@
-
 use std::ptr::copy_nonoverlapping;
-
 
 #[inline]
 fn rotl32(x: u32, r: u8) -> u32 {
@@ -25,7 +23,7 @@ fn read_u16_p(p: *const u8) -> u16 {
     out
 }
 
-#[inline(always)]
+#[inline(never)]
 pub fn fnv32a_yoshimitsu_hasher(bytes: &[u8]) -> u32 {
     fnv32a_yoshimitsu_triad(0xD8AF_FD71, bytes)
 }
