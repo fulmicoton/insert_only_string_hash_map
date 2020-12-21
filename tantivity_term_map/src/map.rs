@@ -1,3 +1,4 @@
+use crate::bitset::BitSet;
 use crate::memory_arena::store;
 use murmurhash32::murmurhash2;
 
@@ -7,7 +8,7 @@ use std::iter;
 use std::mem;
 use std::slice;
 
-type UnorderedTermId = u32;
+// type UnorderedTermId = u32;
 
 /// Returns the actual memory size in bytes
 /// required to create a table of size $2^num_bits$.
@@ -26,7 +27,7 @@ pub fn compute_table_size(num_bits: usize) -> usize {
 struct KeyValue {
     key_value_addr: Addr,
     hash: u32,
-    unordered_term_id: UnorderedTermId,
+    // unordered_term_id: UnorderedTermId,
 }
 
 impl Default for KeyValue {
@@ -34,7 +35,7 @@ impl Default for KeyValue {
         KeyValue {
             key_value_addr: Addr::null_pointer(),
             hash: 0u32,
-            unordered_term_id: UnorderedTermId::default(),
+            // unordered_term_id: UnorderedTermId::default(),
         }
     }
 }
@@ -58,7 +59,7 @@ pub struct TermHashMap {
     table: Box<[KeyValue]>,
     pub heap: MemoryArena,
     mask: usize,
-    occupied: Vec<usize>,
+    occupied: BitSet,
     len: usize,
 }
 
@@ -86,13 +87,13 @@ pub struct Iter<'a> {
 }
 
 impl<'a> Iterator for Iter<'a> {
-    type Item = (&'a [u8], Addr, UnorderedTermId);
+    type Item = (&'a [u8], Addr);//, UnorderedTermId);
 
     fn next(&mut self) -> Option<Self::Item> {
         self.inner.next().cloned().map(move |bucket: usize| {
             let kv = self.hashmap.table[bucket];
             let (key, offset): (&'a [u8], Addr) = self.hashmap.get_key_value(kv.key_value_addr);
-            (key, offset, kv.unordered_term_id)
+            (key, offset)//, kv.unordered_term_id)
         })
     }
 }
@@ -101,12 +102,13 @@ impl TermHashMap {
     pub fn new(num_bucket_power_of_2: usize) -> TermHashMap {
         let heap = MemoryArena::new();
         let table_size = 1 << num_bucket_power_of_2;
+        let occupied: BitSet = BitSet::with_max_value(table_size as u32);
         let table: Vec<KeyValue> = iter::repeat(KeyValue::default()).take(table_size).collect();
         TermHashMap {
             table: table.into_boxed_slice(),
             heap,
             mask: table_size - 1,
-            occupied: Vec::with_capacity(table_size / 2),
+            occupied,
             len: 0,
         }
     }
@@ -120,7 +122,7 @@ impl TermHashMap {
     }
 
     fn is_saturated(&self) -> bool {
-        self.table.len() < self.occupied.len() * 3
+        self.table.len() < self.occupied.len() * 2
     }
 
     #[inline(always)]
@@ -141,23 +143,16 @@ impl TermHashMap {
         }
     }
 
-    fn set_bucket(&mut self, hash: u32, key_value_addr: Addr, bucket: usize) -> UnorderedTermId {
-        self.occupied.push(bucket);
-        let unordered_term_id = self.len as UnorderedTermId;
+    fn set_bucket(&mut self, hash: u32, key_value_addr: Addr, bucket: usize) {//-> UnorderedTermId {
+        self.occupied.insert(bucket as u32);
+        // let unordered_term_id = self.len as UnorderedTermId;
         self.len += 1;
         self.table[bucket] = KeyValue {
             key_value_addr,
             hash,
-            unordered_term_id,
+            // unordered_term_id,
         };
-        unordered_term_id
-    }
-
-    pub fn iter(&self) -> Iter<'_> {
-        Iter {
-            inner: self.occupied.iter(),
-            hashmap: &self,
-        }
+        // unordered_term_id
     }
 
     fn resize(&mut self) {
@@ -166,13 +161,14 @@ impl TermHashMap {
         self.mask = mask;
         let new_table = vec![KeyValue::default(); new_len].into_boxed_slice();
         let old_table = mem::replace(&mut self.table, new_table);
-        for old_pos in self.occupied.iter_mut() {
-            let key_value: KeyValue = old_table[*old_pos];
+        let old_occupied = mem::replace(&mut self.occupied, BitSet::with_max_value(new_len as u32));
+        for old_pos in old_occupied.iter() {
+            let key_value: KeyValue = old_table[old_pos as usize];
             let mut probe = QuadraticProbing::compute(key_value.hash as usize, mask);
             loop {
                 let bucket = probe.next_probe();
                 if self.table[bucket].is_empty() {
-                    *old_pos = bucket;
+                    self.occupied.insert(bucket as u32);
                     self.table[bucket] = key_value;
                     break;
                 }
@@ -194,7 +190,7 @@ impl TermHashMap {
         &mut self,
         key: S,
         mut updater: TMutator,
-    ) -> UnorderedTermId
+    ) //-> UnorderedTermId
     where
         S: AsRef<[u8]>,
         V: Copy + 'static,
@@ -230,7 +226,7 @@ impl TermHashMap {
                     let v = self.heap.read(val_addr);
                     let new_v = updater(Some(v));
                     self.heap.write_at(val_addr, new_v);
-                    return kv.unordered_term_id;
+                    return; //kv.unordered_term_id;
                 }
             }
         }

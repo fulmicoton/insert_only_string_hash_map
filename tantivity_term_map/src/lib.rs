@@ -1,6 +1,8 @@
 
 pub mod map;
 pub mod memory_arena;
+mod bitset;
+
 #[cfg(test)]
 mod tests {
     #[test]

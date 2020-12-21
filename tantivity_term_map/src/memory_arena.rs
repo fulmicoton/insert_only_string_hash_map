@@ -25,7 +25,7 @@
 use std::mem;
 use std::ptr;
 
-const NUM_BITS_PAGE_ADDR: usize = 20;
+const NUM_BITS_PAGE_ADDR: usize = 18;
 const PAGE_SIZE: usize = 1 << NUM_BITS_PAGE_ADDR; // pages are 1 MB large
 
 /// Represents a pointer into the `MemoryArena`
